@@ -1,0 +1,630 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BINGO IE LOS QUINDOS – MODO FIESTA</title>
+
+<!--
+    Librería jsPDF: Se usa para "dibujar" el PDF manualmente.
+    Es mucho más rápido y confiable que html2canvas.
+-->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+<style>
+    /* Estilos generales del cuerpo */
+    body {
+        margin: 0;
+        padding: 0;
+        font-family: Arial, sans-serif;
+        background: #000;
+        color: #fff;
+        overflow-x: hidden;
+    }
+
+    /* Título principal */
+    h1 {
+        text-align: center;
+        margin-top: 10px;
+        font-size: 45px;
+        /* Se quita el text-shadow estático y se reemplaza por la animación */
+        animation: neon-pulse 2.5s infinite alternate ease-in-out;
+    }
+
+    /* Contenedor principal (responsivo) */
+    #mainContainer {
+        display: grid;
+        grid-template-columns: 1fr; /* Columna única en móviles */
+        padding: 10px;
+        gap: 20px;
+        align-items: start;
+    }
+
+    /* Dos columnas en escritorio */
+    @media (min-width: 768px) {
+        #mainContainer {
+            grid-template-columns: 45% 55%;
+        }
+    }
+
+    /* Número cantado */
+    #calledNumber {
+        font-size: 130px; /* Ajustado para que quepa "B 15" */
+        text-align: center;
+        margin-top: 20px;
+        color: yellow;
+        text-shadow: 0 0 25px yellow, 0 0 40px orange;
+        height: auto;
+        min-height: 150px; /* Altura mínima para evitar saltos */
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    /* Controles (botones e input) */
+    #controls {
+        text-align: center;
+        margin-top: 20px;
+    }
+
+    button {
+        padding: 15px 25px;
+        font-size: 20px;
+        font-weight: bold;
+        border: none;
+        border-radius: 12px;
+        background: #ffcc00;
+        cursor: pointer;
+        margin: 10px;
+        transition: .2s;
+    }
+
+    button:hover {
+        transform: scale(1.08);
+        background: #ffe680;
+    }
+
+    /* Estilo para botones deshabilitados */
+    button:disabled {
+        background: #888;
+        color: #ccc;
+        cursor: not-allowed;
+        transform: none;
+    }
+
+    input {
+        padding: 12px;
+        font-size: 20px;
+        border-radius: 10px;
+        border: none;
+        width: 260px;
+        text-align: center;
+    }
+
+    /* Imagen de la estrella en la página principal */
+    #starImage {
+        width: 150px;
+        height: 150px;
+        border-radius: 50%;
+        margin-top: 25px;
+        border: 4px solid #ffcc00;
+        /* Se actualiza la animación para que sea más un brillo pulsante */
+        animation: star-glow 2s infinite alternate ease-in-out;
+    }
+
+    /* Tablero principal */
+    #board {
+        width: 100%;
+        display: grid;
+        grid-template-columns: repeat(16, 1fr); /* 1 col para letra + 15 para números */
+        gap: 6px;
+        margin-top: 20px;
+    }
+
+    /* Encabezado de fila (B, I, N, G, O) */
+    .cell-header {
+        background: #333; 
+        padding: 10px 5px;
+        height: 40px;
+        text-align: center;
+        border-radius: 5px;
+        font-size: 20px; 
+        font-weight: bold;
+        color: yellow; 
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-sizing: border-box;
+        /* Se quita el text-shadow estático y se añade la animación de casino */
+        animation: casino-flicker 1.5s infinite linear;
+    }
+
+    /* Celda de número en el tablero */
+    .cell {
+        background: #222;
+        padding: 10px 5px; 
+        height: 40px;
+        text-align: center;
+        border-radius: 5px;
+        font-size: 18px; 
+        transition: 0.2s;
+        display: flex; 
+        align-items: center;
+        justify-content: center;
+        box-sizing: border-box;
+    }
+
+    /* Celda activa (número cantado) */
+    .active {
+        background: yellow !important;
+        color: black !important;
+        font-weight: bold;
+        box-shadow: 0 0 15px yellow, 0 0 30px orange;
+        transform: scale(1.1);
+    }
+
+    /* Animación de fiesta */
+    .party {
+        animation: fiesta 1.2s infinite alternate ease-in-out;
+    }
+
+    /* Keyframes de la animación de fiesta (mejorada) */
+    @keyframes fiesta {
+        0% {
+            box-shadow: 0 0 20px red, 0 0 35px red;
+            transform: scale(1.1) rotate(-2deg);
+        }
+        25% { box-shadow: 0 0 20px blue, 0 0 35px blue; }
+        50% {
+            box-shadow: 0 0 20px green, 0 0 35px green;
+            transform: scale(1.1) rotate(2deg);
+        }
+        75% { box-shadow: 0 0 20px yellow, 0 0 35px yellow; }
+        100% {
+            box-shadow: 0 0 20px violet, 0 0 35px violet;
+            transform: scale(1.1) rotate(-2deg);
+        }
+    }
+
+    /* --- NUEVAS ANIMACIONES --- */
+    
+    /* Animación de pulso de neón para el H1 */
+    @keyframes neon-pulse {
+        0%, 100% { text-shadow: 0 0 10px #00eaff, 0 0 20px #00eaff; }
+        100% { text-shadow: 0 0 20px #00eaff, 0 0 40px #00eaff, 0 0 60px #00eaff; }
+    }
+
+    /* Animación de 'brinco' para el número cantado */
+    @keyframes bounce-in {
+        0% { transform: scale(0.5); opacity: 0; }
+        60% { transform: scale(1.2); opacity: 1; }
+        80% { transform: scale(0.9); }
+        100% { transform: scale(1); }
+    }
+
+    /* Clase que se añade y quita con JS para activar el 'brinco' */
+    .bounce {
+        animation: bounce-in 0.6s ease;
+    }
+
+    /* Nueva animación para la estrella de la página principal */
+    @keyframes star-glow {
+        0% {
+            box-shadow: 0 0 25px #ffcc00, 0 0 40px #ffe680;
+            transform: scale(1);
+        }
+        100% {
+            box-shadow: 0 0 40px #ffcc00, 0 0 60px #ffe680;
+            transform: scale(1.05);
+        }
+    }
+
+    /* NUEVA ANIMACIÓN DE CASINO (para .cell-header) */
+    @keyframes casino-flicker {
+        0%, 100% { text-shadow: 0 0 10px #ffcc00, 0 0 20px #ffcc00; }
+        25% { text-shadow: 0 0 10px #ffff99, 0 0 20px #ffff99; }
+        50% { text-shadow: 0 0 10px #ffcc00, 0 0 30px #ffcc00; }
+        75% { text-shadow: 0 0 10px #ff9900, 0 0 20px #ff9900; }
+    }
+
+
+    /* --- Modal de Alerta (reemplaza alert()) --- */
+    #modalOverlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.7);
+        display: none; /* Oculto por defecto */
+        justify-content: center;
+        align-items: center;
+        z-index: 1000;
+    }
+
+    #modalBox {
+        background: #222;
+        padding: 30px;
+        border-radius: 15px;
+        border: 2px solid #ffcc00;
+        text-align: center;
+        box-shadow: 0 0 20px #ffcc00;
+        max-width: 400px;
+        width: 80%;
+    }
+
+    #modalMessage {
+        font-size: 22px;
+        margin-bottom: 25px;
+    }
+    
+    /* Contenedor del PDF (sigue oculto, ya no se usa para generar) */
+    #cardsContainer {
+        display: none; 
+    }
+</style>
+</head>
+<body>
+
+<h1>BINGO IE LOS QUINDOS 🎉</h1>
+
+<div id="mainContainer">
+    <!-- COLUMNA IZQUIERDA -->
+    <div>
+        <div id="calledNumber">—</div>
+        <div id="controls">
+            <button onclick="callNumber()">CANTAR</button>
+            <button onclick="resetBingo()">REINICIAR</button><br>
+
+            <input id="numCartones" type="number" placeholder="Cantidad de cartones">
+            <button id="btnGeneratePDF" onclick="generatePDF()">GENERAR CARTONES PDF</button>
+
+            <!-- Imagen de la estrella dorada -->
+            <br>
+            <img id="starImage" src="https://i.postimg.cc/qqqXmQWb/Chat-GPT-Image-14-nov-2025-06-07-16-a-m.png" alt="Espacio Gratis">
+        </div>
+    </div>
+    <!-- COLUMNA DERECHA: TABLERO -->
+    <div id="board"></div>
+</div>
+
+<!-- ZONA PARA PDF (Ya no se usa visualmente) -->
+<div id="cardsContainer"></div>
+
+<!-- MODAL DE ALERTA -->
+<div id="modalOverlay">
+    <div id="modalBox">
+        <div id="modalMessage">Mensaje de prueba</div>
+        <button onclick="hideAlert()">CERRAR</button>
+    </div>
+</div>
+
+
+<script>
+/* ------------------------------------------------------
+   Referencias del DOM
+------------------------------------------------------ */
+const calledNumberEl = document.getElementById("calledNumber");
+const boardEl = document.getElementById("board");
+const numCartonesInput = document.getElementById("numCartones");
+const modalOverlayEl = document.getElementById("modalOverlay");
+const modalMessageEl = document.getElementById("modalMessage");
+const btnGeneratePDF = document.getElementById("btnGeneratePDF");
+
+let numbers = [];
+let allCells = {};
+let synth; // Variable para la síntesis de voz
+
+// Inicializar la síntesis de voz de forma segura
+try {
+    synth = window.speechSynthesis;
+} catch (error) {
+    console.error("La API de Síntesis de Voz no es soportada.");
+    synth = null;
+}
+
+
+/* ------------------------------------------------------
+   Lógica de Voz
+------------------------------------------------------ */
+function speak(text) {
+    if (!synth) return; // No hacer nada si la API no es soportada
+    try {
+        synth.cancel(); // Detener cualquier voz anterior
+        const utterance = new SpeechSynthesisUtterance(text);
+        utterance.lang = 'es-ES'; // Español
+        utterance.rate = 0.9;     // Un poco más lento
+        synth.speak(utterance);
+    } catch (error) {
+        console.error("Error en la API de Voz: ", error);
+    }
+}
+
+/* ------------------------------------------------------
+   Lógica del Juego (Crear tablero, Cantar, Resetear)
+------------------------------------------------------ */
+
+/**
+ * Devuelve la letra (B,I,N,G,O) para un número dado.
+ */
+function getLetterForNumber(num) {
+    if (num <= 15) return 'B';
+    if (num <= 30) return 'I';
+    if (num <= 45) return 'N';
+    if (num <= 60) return 'G';
+    return 'O'; // num <= 75
+}
+
+/**
+ * Dibuja el tablero principal de 75 números con encabezados.
+ */
+function createBoard() {
+    boardEl.innerHTML = "";
+    allCells = {}; 
+    const ranges = [
+        { letter: 'B', min: 1, max: 15 },
+        { letter: 'I', min: 16, max: 30 },
+        { letter: 'N', min: 31, max: 45 },
+        { letter: 'G', min: 46, max: 60 },
+        { letter: 'O', min: 61, max: 75 }
+    ];
+
+    for (const range of ranges) {
+        // Añadir el encabezado de la letra (B, I, N, G, O)
+        let letterDiv = document.createElement("div");
+        letterDiv.className = "cell-header";
+        letterDiv.textContent = range.letter;
+        boardEl.appendChild(letterDiv);
+
+        // Añadir las 15 celdas de números
+        for (let n = range.min; n <= range.max; n++) {
+            let div = document.createElement("div");
+            div.className = "cell";
+            div.id = "cell-" + n;
+            div.textContent = n;
+            boardEl.appendChild(div);
+            allCells[n] = div; 
+        }
+    }
+}
+
+/**
+ * Reinicia el juego a su estado inicial.
+ */
+function resetBingo() {
+    // Rellenar el array de números de 1 a 75
+    numbers = Array.from({length:75},(_,i)=>i+1);
+    calledNumberEl.textContent = "—"; // Resetear pantalla
+    
+    // Quitar clases 'active' y 'party' de todas las celdas
+    for (let n=1; n<=75; n++) {
+        if(allCells[n]) { // Verificar que la celda exista
+            allCells[n].classList.remove("active","party");
+        }
+    }
+    
+    // Detener cualquier voz que esté hablando
+    if (synth) {
+        synth.cancel();
+    }
+}
+
+/**
+ * Saca un número nuevo, lo muestra y lo canta.
+ */
+function callNumber() {
+    if (numbers.length === 0) {
+        showAlert("¡Ya no hay más números!"); 
+        return;
+    }
+
+    // Sacar un número aleatorio del array
+    const i = Math.floor(Math.random()*numbers.length);
+    const num = numbers.splice(i,1)[0];
+    const letter = getLetterForNumber(num);
+    
+    const callOut = `${letter} ${num}`;    
+    const speechText = `${letter}... ${num}`; // Texto para la voz
+    
+    // Actualizar la pantalla
+    // --- LÓGICA DE ANIMACIÓN "BOUNCE" ---
+    calledNumberEl.textContent = callOut;
+    calledNumberEl.classList.remove("bounce"); // 1. Quitar animación antigua
+    void calledNumberEl.offsetWidth; // 2. Forzar un "reflow" del navegador (truco)
+    calledNumberEl.classList.add("bounce"); // 3. Añadir nueva animación
+    // --- FIN DE LÓGICA DE ANIMACIÓN ---
+    
+    // Resaltar en el tablero
+    if(allCells[num]) {
+        allCells[num].classList.add("active", "party");
+    }
+    
+    // Cantar el número
+    speak(speechText); 
+}
+
+/* ------------------------------------------------------
+   Sistema de Alerta Modal
+------------------------------------------------------ */
+function showAlert(message) {
+    modalMessageEl.textContent = message;
+    modalOverlayEl.style.display = "flex";
+}
+function hideAlert() {
+    modalOverlayEl.style.display = "none";
+}
+
+/* ======================================================================
+   INICIO: NUEVA LÓGICA DE GENERACIÓN DE PDF (Manual y Rápida)
+======================================================================
+*/
+
+/**
+ * Genera números aleatorios únicos para una columna.
+ * @param {number} min - Valor mínimo (inclusive)
+ * @param {number} max - Valor máximo (inclusive)
+ * @param {number} count - Cuántos números generar (por defecto 5)
+ */
+function generateColumn(min, max, count = 5) {
+    const arr = [];
+    while (arr.length < count) {
+        const n = Math.floor(Math.random()*(max-min+1))+min;
+        if (!arr.includes(n)) arr.push(n);
+    }
+    return arr;
+}
+
+/**
+ * Genera solo los DATOS del cartón (ya no genera HTML).
+ * Usamos '★' (carácter de estrella) como en el ejemplo, 
+ * ya que jsPDF no puede renderizar SVGs o imágenes externas
+ * de forma confiable sin errores.
+ */
+function generateSingleCardData() {
+    const ranges = {
+        B:[1,15], I:[16,30], N:[31,45], G:[46,60], O:[61,75]
+    };
+    const B = generateColumn(...ranges.B);
+    const I = generateColumn(...ranges.I);
+    const N = generateColumn(...ranges.N, 4); // Pedir solo 4 números para la N
+    const G = generateColumn(...ranges.G);
+    const O = generateColumn(...ranges.O);
+
+    // Insertar la estrella (carácter) en el espacio libre (posición 3, índice 2)
+    N.splice(2, 0, '★');
+
+    return { B, I, N, G, O };
+}
+
+/**
+ * Dibuja el cartón manualmente en el PDF usando jsPDF.
+ * Replica el diseño de "1 cartón grande por hoja".
+ */
+function drawCardOnPdf(doc, cardData, cardId) {
+    const letters = ['B', 'I', 'N', 'G', 'O'];
+    
+    // --- Configuración de página (A4 = 210 x 297 mm) ---
+    const pageWidth = doc.internal.pageSize.getWidth(); // 210
+    // const pageHeight = doc.internal.pageSize.getHeight(); // 297
+    const margin = 20;
+    const cardWidth = pageWidth - (margin * 2); // 170 mm
+    const cellWidth = cardWidth / 5; // 34 mm
+    
+    // --- 1. Título ---
+    const titleTop = margin + 10;
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(30);
+    doc.text(`CARTÓN #${cardId}`, pageWidth / 2, titleTop, { align: 'center' });
+
+    // --- 2. Encabezado (B-I-N-G-O) ---
+    const headerTop = titleTop + 20;
+    const headerCellHeight = 20;
+    doc.setFontSize(40); // Letras BINGO grandes
+    doc.setLineWidth(1);
+    doc.rect(margin, headerTop, cardWidth, headerCellHeight); // Caja del encabezado
+
+    letters.forEach((letter, i) => {
+        const x = margin + (i * cellWidth) + (cellWidth / 2);
+        const y = headerTop + (headerCellHeight / 2) + 7; // Ajuste vertical
+        doc.text(letter, x, y, { align: 'center' });
+        if (i > 0) {
+            // Líneas verticales entre las letras
+            doc.line(margin + (i * cellWidth), headerTop, margin + (i * cellWidth), headerTop + headerCellHeight);
+        }
+    });
+
+    // --- 3. Grilla de Números ---
+    const gridTop = headerTop + headerCellHeight;
+    const gridCellHeight = 30; // Alto de cada celda de número
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(48); // Números grandes
+    doc.setLineWidth(0.5);
+
+    for (let row = 0; row < 5; row++) {
+        for (let col = 0; col < 5; col++) {
+            const letter = letters[col];
+            const number = cardData[letter][row];
+            
+            const cellX = margin + (col * cellWidth);
+            const cellY = gridTop + (row * gridCellHeight);
+            
+            // Dibujar la caja de la celda
+            doc.rect(cellX, cellY, cellWidth, gridCellHeight);
+            
+            // Poner el número/estrella
+            const textX = cellX + (cellWidth / 2);
+            const textY = cellY + (gridCellHeight / 2) + 8; // Ajuste vertical
+            
+            // Poner la estrella un poco más grande si es la estrella
+            if (number === '★') {
+                doc.setFontSize(60); // Estrella grande
+                doc.text(String(number), textX, textY + 4, { align: 'center' });
+                doc.setFontSize(48); // Volver al tamaño normal
+            } else {
+                doc.text(String(number), textX, textY, { align: 'center' });
+            }
+        }
+    }
+}
+
+/**
+ * Función principal para generar el PDF.
+ * Ahora es síncrona, sin html2canvas y súper rápida.
+ */
+async function generatePDF() {
+    const qty = parseInt(numCartonesInput.value);
+    if (!qty || qty < 1 || qty > 1000) { // Límite de 1000
+        showAlert("Ingrese una cantidad válida de cartones (ej: 1 a 1000).");
+        return;
+    }
+
+    btnGeneratePDF.disabled = true;
+    // Ya no mostramos porcentaje, será casi instantáneo.
+    btnGeneratePDF.textContent = "GENERANDO...";
+    
+    // Darle 10ms al navegador para que actualice el texto del botón
+    await new Promise(resolve => setTimeout(resolve, 10));
+
+    // Inicializar jspdf (A4, milímetros)
+    const { jsPDF } = window.jspdf;
+    const pdf = new jsPDF('p', 'mm', 'a4'); // 'p'ortrait (vertical), 'mm' (milímetros), 'a4'
+    
+    for (let i = 1; i <= qty; i++) {
+        // 1. Generar los datos (números)
+        const cardData = generateSingleCardData();
+        
+        // 2. Añadir nueva página (si no es el primero)
+        if (i > 1) {
+            pdf.addPage();
+        }
+        
+        // 3. Dibujar el cartón en la página
+        drawCardOnPdf(pdf, cardData, i);
+    }
+
+    // 4. Guardar el archivo
+    pdf.save(`Cartones-Bingo-${qty}-1porHoja.pdf`);
+
+    // 5. Reactivar el botón y notificar
+    btnGeneratePDF.disabled = false;
+    btnGeneratePDF.textContent = "GENERAR CARTONES PDF";
+    showAlert(`¡Se han generado ${qty} cartones con éxito (1 por hoja)!`);
+}
+
+/* ======================================================================
+   FIN: NUEVA LÓGICA DE GENERACIÓN DE PDF
+======================================================================
+*/
+
+
+/* ------------------------------------------------------
+   INICIO - Ejecutar al cargar la página
+------------------------------------------------------ */
+// Se llama al final del script para asegurar que todo esté cargado
+// y evitar problemas con 'DOMContentLoaded' en vistas previas.
+createBoard();
+resetBingo();
+</script>
+</body>
+</html>
+
